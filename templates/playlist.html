@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+
+        <link href="/static/styles.css" rel="stylesheet">
+        <meta name="viewport" content="initial-scale=1, width=device-width">
+        <title>{{name}}</title>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const player = document.getElementById('player');
+                const source = document.getElementById('source');
+                const deleteButtons = document.querySelectorAll('.delete')
+                const playButtons = document.querySelectorAll('.play-song');
+                const renameButtons = document.querySelectorAll('.toggle');
+                var index = -1;
+                let auto = true;
+                let looping = false;
+
+                deleteButtons.forEach(button => {
+                    button.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if(confirm('Permanently delete this song?'))
+                        {
+                            const form = this.closest('.deleteform');
+                            form.submit();
+                        }
+                    })
+                })
+
+                playButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        var playing = this.getAttribute('song-name');
+                        var number = this.getAttribute('number');
+                        index = number - 1;
+                        document.querySelector('#playing').innerHTML='Now Playing: ' + number + '. ' + playing;
+                        source.src = this.getAttribute('data-file');
+                        player.load();
+                        player.play();
+                    })
+                })
+
+                renameButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const num = this.getAttribute('snum');
+                        const toshow = document.querySelector(`#rename${num}`);
+                        toshow.style.display = 'block';
+                        this.style.display = 'none';
+                    })
+                })
+
+                let playall = document.querySelector('#playall');
+                playall.addEventListener('click', function() {
+                    index = 0;
+                    playButtons[index].click();
+                    autoplay.checked = true;
+                    })
+
+                player.addEventListener('ended', function() {
+                    if(looping == true)
+                    {
+                        playButtons[index].click();
+                    }
+
+                    else if(auto == true)
+                    {
+                        index++;
+                        if(index < playButtons.length)
+                        {
+                            playButtons[index].click();
+                        }
+                        else
+                        {
+                            autoplay.checked = false;
+                            index--;
+                        }
+                    }
+                })
+
+                let autoplay = document.querySelector('#autoplay')
+                autoplay.addEventListener('change', function() {
+                    if (this.checked)
+                    {
+                        auto = true;
+                    }
+                    else
+                    {
+                        auto = false;
+                    }
+                })
+
+                let loop = document.querySelector('#loop')
+                loop.addEventListener('change', function() {
+                    if (this.checked)
+                    {
+                        looping = true;
+                    }
+                    else
+                    {
+                        looping = false;
+                    }
+                })
+
+                let prev = document.querySelector('#prev')
+                prev.addEventListener('click' , function() {
+                    if (index > 0)
+                    {
+                        index--;
+                        playButtons[index].click();
+                    }
+                })
+
+                let next = document.querySelector('#next')
+                next.addEventListener('click', function() {
+                    if (index < playButtons.length - 1)
+                    {
+                        index++;
+                        playButtons[index].click();
+                    }
+                })
+            })
+        </script>
+    </head>
+    <body class="centered">
+        <header class="title">Lord Grond's Music Player</header>
+        <p><br></p>
+        <main>
+            <div class="container mt-5">
+                <h3 id="playing">Now Playing: </h3>
+            </div>
+            <div class="container mt-5 sameline">
+                <button class="btn btn-primary" type="submit" id="prev">Prev</button>
+                <audio id="player" controls>
+                    <source id="source" src="" type="audio/mpeg">
+                </audio>
+                <button class="btn btn-primary" type="submit" id="next">Next</button>
+            </div>
+            <p></p>
+            <div class="container text-center sameline">
+                <div class="form-check form-switch d-inline-block">
+                    <input class="form-check-input" type="checkbox" role="switch" id="autoplay" checked>
+                    <label class="form-check-label" for="autoplay">Autoplay</label>
+                </div>
+                <div class="form-check form-switch d-inline-block">
+                    <input class="form-check-input" type="checkbox" role="switch" id="loop" unchecked>
+                    <label class="form-check-label" for="loop">Loop Song</label>
+                </div>
+            </div>
+            <div class="container mt-5 border border-primary border-3">
+                <h3>Add song:</h3>
+                <form action="/addsong" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="id" value="{{ playlist_id }}">
+                    <div class="mb-3">
+                        <input autocomplete="off" class="form-control mx-auto w-auto" name="name" placeholder="Song Name" type="text" maxlength="50" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="file" class="form-control" name="file" required>
+                    </div>
+                    <p></p>
+                    <button class="btn btn-primary" type="submit">Add</button>
+                </form>
+            </div>
+            <div class="container mt-5 tbwidthp">
+                <h3>Songs</h3>
+                <p></p>
+                <div class="sameline">
+                    <button class="btn btn-primary" id="playall" type="submit">Play All</button>
+                    <form action="/shuffle" method="post">
+                        <input type="hidden" name="playlist_id" value="{{ playlist_id }}">
+                        <button class="btn btn-primary" type="submit">Shuffle</button>
+                    </form>
+                </div>
+                <p><br></p>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Number</th>
+                            <th>Name</th>
+                            <th>Play</th>
+                            <th>Delete</th>
+                            <th>Rename</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in songs %}
+                            <tr>
+                                <td>{{row.songorder}}</td>
+                                <td>{{row.s_name}}</td>
+                                <td><button class="btn btn-primary play-song" song-name="{{row.s_name}}" data-file="{{ url_for('static', filename='songs/' + row.file) }}" number="{{row.songorder}}">Play</button></td>
+                                <td>
+                                    <form action="/deletesong" class="deleteform" method="post">
+                                        <input type="hidden" name="plid" value="{{playlist_id}}">
+                                        <input type="hidden" name="song" value="{{row.s_name}}">
+                                        <button class="btn btn-danger delete">Delete</button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <form action="/renamesong" method="post">
+                                        <input type="hidden" name="playid" value="{{playlist_id}}">
+                                        <input type="hidden" name="currentname" value="{{row.s_name}}">
+                                        <div id="rename{{row.songorder}}" style="display: none">
+                                            <input type="text" autocomplete="off" name="newname" placeholder="New Name" required maxlength="50">
+                                            <p></p>
+                                            <button type="submit">Confirm</button>
+                                        </div>
+                                        <button type="button" class="btn btn-warning toggle" snum="{{row.songorder}}">Rename</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </main>
+        <p><br><br></p>
+        <footer><a href="/" class="btn btn-primary">Back</a></footer>
+    </body>
+</html>
